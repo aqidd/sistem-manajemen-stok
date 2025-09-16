@@ -1,3 +1,4 @@
+// 2025-09-16: Switched to full-width table and moved AddItemForm into a modal.
 import React, { useState, useEffect, useMemo } from 'react';
 import { InventoryItem, SortOption, StockStatus, FilterStatus } from './types';
 import Header from './components/Header';
@@ -28,6 +29,7 @@ const App: React.FC = () => {
     const [sortBy, setSortBy] = useState<SortOption>(SortOption.DEFAULT);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState<FilterStatus>('ALL');
+    const [showAddModal, setShowAddModal] = useState(false);
 
     useEffect(() => {
         const loadItems = async () => {
@@ -124,37 +126,58 @@ const App: React.FC = () => {
         <div className="min-h-screen bg-slate-50 text-slate-800">
             <Header />
             <main className="container mx-auto p-4 md:p-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-1">
-                        <AddItemForm onAddItem={handleAddItem} />
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold text-slate-700">Inventaris</h2>
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
+                    >
+                        + Tambah Barang
+                    </button>
+                </div>
+                {isLoading ? (
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-sky-600"></div>
                     </div>
-                    <div className="lg:col-span-2">
-                         {isLoading ? (
-                            <div className="flex justify-center items-center h-64">
-                                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-sky-600"></div>
-                            </div>
-                        ) : error ? (
-                            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
-                                <p className="font-bold">Terjadi Kesalahan</p>
-                                <p>{error}</p>
-                            </div>
-                        ) : (
-                            <InventoryList 
-                                items={filteredAndSortedItems} 
-                                onDeleteItem={handleDeleteItem} 
-                                onUpdateItem={handleUpdateItem}
-                                currentSort={sortBy}
-                                onSortChange={setSortBy}
-                                searchQuery={searchQuery}
-                                onSearchChange={setSearchQuery}
-                                filterStatus={filterStatus}
-                                onFilterChange={setFilterStatus}
-                                totalItemsCount={items.length}
-                            />
-                        )}
+                ) : error ? (
+                    <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
+                        <p className="font-bold">Terjadi Kesalahan</p>
+                        <p>{error}</p>
+                    </div>
+                ) : (
+                    <InventoryList 
+                        items={filteredAndSortedItems} 
+                        onDeleteItem={handleDeleteItem} 
+                        onUpdateItem={handleUpdateItem}
+                        currentSort={sortBy}
+                        onSortChange={setSortBy}
+                        searchQuery={searchQuery}
+                        onSearchChange={setSearchQuery}
+                        filterStatus={filterStatus}
+                        onFilterChange={setFilterStatus}
+                        totalItemsCount={items.length}
+                    />
+                )}
+            </main>
+
+            {showAddModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+                    <div className="bg-white w-full max-w-lg mx-4 rounded-xl shadow-xl p-6 relative">
+                        <button
+                            aria-label="Tutup"
+                            onClick={() => setShowAddModal(false)}
+                            className="absolute top-3 right-3 text-slate-400 hover:text-slate-600"
+                        >
+                            ×
+                        </button>
+                        <h3 className="text-lg font-semibold text-slate-800 mb-4">Tambah Barang</h3>
+                        <AddItemForm onAddItem={async (payload) => {
+                            await handleAddItem(payload);
+                            // keep modal open so user can see success popup; they can close it afterwards
+                        }} />
                     </div>
                 </div>
-            </main>
+            )}
         </div>
     );
 };
