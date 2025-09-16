@@ -1,0 +1,5 @@
+{
+  "name": "Sistem Manajemen Stok Cerdas",
+  "description": "Aplikasi untuk menghitung jumlah stok barang yang ada dan memperkirakan kapan harus memesan kembali (restock) berdasarkan kebutuhan harian dan waktu tunggu pesanan.",
+  "requestFramePermissions": []
+}
