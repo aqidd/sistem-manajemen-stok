@@ -1,9 +1,10 @@
+// 2025-09-16: Fixed types import path; added success popup after add.
 import React, { useState } from 'react';
 import { InventoryItem } from '../types';
-import { PlusIcon } from '../constants';
+import { PlusIcon, CheckCircleIcon } from '../constants';
 
 interface AddItemFormProps {
-    onAddItem: (item: Omit<InventoryItem, 'id'>) => void;
+    onAddItem: (item: Omit<InventoryItem, 'id'>) => Promise<void> | void;
 }
 
 const AddItemForm: React.FC<AddItemFormProps> = ({ onAddItem }) => {
@@ -14,15 +15,16 @@ const AddItemForm: React.FC<AddItemFormProps> = ({ onAddItem }) => {
     const [recipesToday, setRecipesToday] = useState('');
     const [leadTime, setLeadTime] = useState('');
     const [supplierWhatsapp, setSupplierWhatsapp] = useState('');
+    const [showSuccess, setShowSuccess] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name || !currentStock || !requirementPerRecipe || !recipesToday || !leadTime) {
             alert('Mohon isi semua field yang wajib diisi.');
             return;
         }
 
-        onAddItem({
+        await Promise.resolve(onAddItem({
             name,
             unit,
             currentStock: parseFloat(currentStock),
@@ -30,7 +32,7 @@ const AddItemForm: React.FC<AddItemFormProps> = ({ onAddItem }) => {
             recipesToday: parseInt(recipesToday, 10),
             leadTime: parseInt(leadTime, 10),
             supplierWhatsapp: supplierWhatsapp || undefined,
-        });
+        }));
 
         // Reset form
         setName('');
@@ -40,6 +42,7 @@ const AddItemForm: React.FC<AddItemFormProps> = ({ onAddItem }) => {
         setRecipesToday('');
         setLeadTime('');
         setSupplierWhatsapp('');
+        setShowSuccess(true);
     };
 
     return (
@@ -148,6 +151,23 @@ const AddItemForm: React.FC<AddItemFormProps> = ({ onAddItem }) => {
                     <span className="ml-2">Tambah Barang</span>
                 </button>
             </form>
+            {showSuccess && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+                    <div className="bg-white w-full max-w-sm mx-4 rounded-xl shadow-xl p-6 text-center">
+                        <div className="mx-auto mb-3 w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700">
+                            <CheckCircleIcon />
+                        </div>
+                        <h3 className="text-lg font-semibold text-slate-800">Barang berhasil ditambahkan</h3>
+                        <p className="text-sm text-slate-600 mt-1">Data barang baru telah tersimpan.</p>
+                        <button
+                            onClick={() => setShowSuccess(false)}
+                            className="mt-5 inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors w-full"
+                        >
+                            OK
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

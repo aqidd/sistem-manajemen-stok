@@ -1,3 +1,4 @@
+// 2025-09-16: Fixed types import path for Docker/Vite build.
 import React from 'react';
 import { InventoryItem, SortOption, FilterStatus, StockStatus } from '../types';
 import InventoryItemCard from './InventoryItemCard';
