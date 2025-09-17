@@ -26,7 +26,9 @@ db.exec(`
     requirementPerRecipe REAL NOT NULL,
     recipesToday INTEGER NOT NULL,
     leadTime INTEGER NOT NULL,
-    supplierWhatsapp TEXT
+    supplierWhatsapp TEXT,
+    predictedEmptyDate TEXT,
+    lastUpdated TEXT
   );
 `);
 
@@ -37,16 +39,22 @@ export function countItems(): number {
 
 export function seedIfEmpty(): void {
   if (countItems() > 0) return;
+  const now = new Date().toISOString();
   const initialData: InventoryItem[] = [
-    { id: '1', name: 'Tepung Terigu', unit: 'kg', currentStock: 50, requirementPerRecipe: 0.5, recipesToday: 20, leadTime: 3, supplierWhatsapp: '+6281234567890' },
-    { id: '2', name: 'Gula Pasir', unit: 'kg', currentStock: 20, requirementPerRecipe: 0.2, recipesToday: 20, leadTime: 2, supplierWhatsapp: '+6281234567891' },
-    { id: '3', name: 'Kotak Kemasan', unit: 'pcs', currentStock: 200, requirementPerRecipe: 1, recipesToday: 80, leadTime: 5, supplierWhatsapp: '+6281234567892' },
-    { id: '4', name: 'Mentega', unit: 'kg', currentStock: 5, requirementPerRecipe: 0.1, recipesToday: 20, leadTime: 1 },
+    { id: '1', name: 'Tepung Terigu', unit: 'kg', currentStock: 50, requirementPerRecipe: 0.5, recipesToday: 20, leadTime: 3, supplierWhatsapp: '+6281234567890', lastUpdated: now },
+    { id: '2', name: 'Gula Pasir', unit: 'kg', currentStock: 20, requirementPerRecipe: 0.2, recipesToday: 20, leadTime: 2, supplierWhatsapp: '+6281234567891', lastUpdated: now },
+    { id: '3', name: 'Kotak Kemasan', unit: 'pcs', currentStock: 200, requirementPerRecipe: 1, recipesToday: 80, leadTime: 5, supplierWhatsapp: '+6281234567892', lastUpdated: now },
+    { id: '4', name: 'Mentega', unit: 'kg', currentStock: 5, requirementPerRecipe: 0.1, recipesToday: 20, leadTime: 1, lastUpdated: now },
   ];
-  const insert = db.prepare(`INSERT INTO items (id, name, unit, currentStock, requirementPerRecipe, recipesToday, leadTime, supplierWhatsapp)
-    VALUES (@id, @name, @unit, @currentStock, @requirementPerRecipe, @recipesToday, @leadTime, @supplierWhatsapp)`);
+  const insert = db.prepare(`INSERT INTO items (id, name, unit, currentStock, requirementPerRecipe, recipesToday, leadTime, supplierWhatsapp, predictedEmptyDate, lastUpdated)
+    VALUES (@id, @name, @unit, @currentStock, @requirementPerRecipe, @recipesToday, @leadTime, @supplierWhatsapp, @predictedEmptyDate, @lastUpdated)`);
   const tx = db.transaction((items: InventoryItem[]) => {
-    for (const it of items) insert.run({ ...it, supplierWhatsapp: it.supplierWhatsapp ?? null });
+    for (const it of items) insert.run({ 
+      ...it, 
+      supplierWhatsapp: it.supplierWhatsapp ?? null,
+      predictedEmptyDate: it.predictedEmptyDate ?? null,
+      lastUpdated: it.lastUpdated ?? null
+    });
   });
   tx(initialData);
 }
@@ -61,10 +69,12 @@ export function createItem(item: NewInventoryItem): InventoryItem {
     ...item,
     id: Date.now().toString(),
   };
-  db.prepare(`INSERT INTO items (id, name, unit, currentStock, requirementPerRecipe, recipesToday, leadTime, supplierWhatsapp)
-    VALUES (@id, @name, @unit, @currentStock, @requirementPerRecipe, @recipesToday, @leadTime, @supplierWhatsapp)`).run({
+  db.prepare(`INSERT INTO items (id, name, unit, currentStock, requirementPerRecipe, recipesToday, leadTime, supplierWhatsapp, predictedEmptyDate, lastUpdated)
+    VALUES (@id, @name, @unit, @currentStock, @requirementPerRecipe, @recipesToday, @leadTime, @supplierWhatsapp, @predictedEmptyDate, @lastUpdated)`).run({
       ...newItem,
       supplierWhatsapp: newItem.supplierWhatsapp ?? null,
+      predictedEmptyDate: newItem.predictedEmptyDate ?? null,
+      lastUpdated: newItem.lastUpdated ?? null,
     });
   return newItem;
 }
@@ -82,11 +92,15 @@ export function updateItem(id: string, item: NewInventoryItem | InventoryItem): 
     recipesToday: (item as InventoryItem).recipesToday,
     leadTime: (item as InventoryItem).leadTime,
     supplierWhatsapp: (item as InventoryItem).supplierWhatsapp,
+    predictedEmptyDate: (item as InventoryItem).predictedEmptyDate,
+    lastUpdated: (item as InventoryItem).lastUpdated,
   };
   db.prepare(`UPDATE items SET name=@name, unit=@unit, currentStock=@currentStock, requirementPerRecipe=@requirementPerRecipe,
-              recipesToday=@recipesToday, leadTime=@leadTime, supplierWhatsapp=@supplierWhatsapp WHERE id=@id`).run({
+              recipesToday=@recipesToday, leadTime=@leadTime, supplierWhatsapp=@supplierWhatsapp, predictedEmptyDate=@predictedEmptyDate, lastUpdated=@lastUpdated WHERE id=@id`).run({
                 ...updated,
                 supplierWhatsapp: updated.supplierWhatsapp ?? null,
+                predictedEmptyDate: updated.predictedEmptyDate ?? null,
+                lastUpdated: updated.lastUpdated ?? null,
               });
   return updated;
 }

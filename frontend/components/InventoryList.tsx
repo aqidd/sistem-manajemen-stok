@@ -1,8 +1,11 @@
 // 2025-09-16: Fixed types import path; converted list to full-width table layout.
 // 2025-09-17: Added inline edit flow directly in table rows (Edit/Save/Cancel).
+// Added predicted empty date display and calendar features.
 import React, { useState } from 'react';
 import { InventoryItem, SortOption, FilterStatus, StockStatus } from '../types';
-import { SearchIcon } from '../constants';
+import { SearchIcon, CalendarIcon } from '../constants';
+import { calculatePredictedEmptyDate, formatDate, formatDateShort, getDaysUntilDate } from '../utils/dateUtils';
+import CalendarView from './CalendarView';
 
 interface InventoryListProps {
     items: InventoryItem[];
@@ -49,6 +52,7 @@ const InventoryList: React.FC<InventoryListProps> = ({
 }) => {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editData, setEditData] = useState<Partial<InventoryItem>>({});
+    const [showCalendar, setShowCalendar] = useState(false);
 
     const beginEdit = (it: InventoryItem) => {
         setEditingId(it.id);
@@ -70,6 +74,7 @@ const InventoryList: React.FC<InventoryListProps> = ({
             recipesToday: Number(editData.recipesToday ?? original.recipesToday),
             leadTime: Number(editData.leadTime ?? original.leadTime),
             supplierWhatsapp: (editData.supplierWhatsapp ?? original.supplierWhatsapp) as string | undefined,
+            lastUpdated: new Date().toISOString(),
         };
         onUpdateItem(updated);
         cancelEdit();
@@ -83,6 +88,13 @@ const InventoryList: React.FC<InventoryListProps> = ({
                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
                     <h2 className="text-2xl font-semibold text-slate-700 mb-2 sm:mb-0 shrink-0">Daftar Stok Barang</h2>
                     <div className="flex items-center space-x-2 w-full sm:w-auto">
+                        <button
+                            onClick={() => setShowCalendar(true)}
+                            className="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 shrink-0"
+                        >
+                            <CalendarIcon />
+                            Kalender
+                        </button>
                         <label htmlFor="sort-by" className="text-sm font-medium text-slate-600 shrink-0">Urutkan:</label>
                         <select
                             id="sort-by"
@@ -149,6 +161,12 @@ const InventoryList: React.FC<InventoryListProps> = ({
                           <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Stok</th>
                           <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Kebutuhan/Hari</th>
                           <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Bertahan</th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                            <div className="flex items-center justify-center">
+                              <CalendarIcon />
+                              Habis Tgl
+                            </div>
+                          </th>
                           <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Lead Time</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
                           <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Aksi</th>
@@ -158,6 +176,8 @@ const InventoryList: React.FC<InventoryListProps> = ({
                         {items.map((item) => {
                           const dailyRequirement = item.requirementPerRecipe * item.recipesToday;
                           const stockDuration = dailyRequirement > 0 ? item.currentStock / dailyRequirement : Infinity;
+                          const predictedEmptyDate = calculatePredictedEmptyDate(item.currentStock, item.requirementPerRecipe, item.recipesToday);
+                          const daysUntilEmpty = getDaysUntilDate(predictedEmptyDate);
                           const reorderPoint = item.leadTime + 2;
                           let status: StockStatus;
                           if (dailyRequirement === 0) {
@@ -245,6 +265,28 @@ const InventoryList: React.FC<InventoryListProps> = ({
                                   isFinite(stockDuration) ? `${Math.floor(stockDuration)} hari` : '∞'
                                 )}
                               </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-800 text-center">
+                                {isEditing ? (
+                                  <span className="text-slate-500">—</span>
+                                ) : (
+                                  <div className="flex flex-col items-center">
+                                    <span className={`text-sm font-medium ${
+                                      daysUntilEmpty !== null && daysUntilEmpty <= item.leadTime 
+                                        ? 'text-red-600' 
+                                        : daysUntilEmpty !== null && daysUntilEmpty <= item.leadTime + 2
+                                        ? 'text-yellow-600'
+                                        : 'text-slate-600'
+                                    }`}>
+                                      {formatDateShort(predictedEmptyDate)}
+                                    </span>
+                                    {daysUntilEmpty !== null && (
+                                      <span className="text-xs text-slate-400">
+                                        {daysUntilEmpty > 0 ? `${daysUntilEmpty} hari` : 'Hari ini'}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-800 text-right">
                                 {isEditing ? (
                                   <input
@@ -300,6 +342,13 @@ const InventoryList: React.FC<InventoryListProps> = ({
                     </table>
                   </div>
                 </div>
+            )}
+            
+            {showCalendar && (
+                <CalendarView
+                    items={items}
+                    onClose={() => setShowCalendar(false)}
+                />
             )}
         </div>
     );

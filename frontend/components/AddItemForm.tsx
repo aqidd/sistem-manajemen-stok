@@ -32,6 +32,7 @@ const AddItemForm: React.FC<AddItemFormProps> = ({ onAddItem }) => {
             recipesToday: parseInt(recipesToday, 10),
             leadTime: parseInt(leadTime, 10),
             supplierWhatsapp: supplierWhatsapp || undefined,
+            lastUpdated: new Date().toISOString(),
         }));
 
         // Reset form
